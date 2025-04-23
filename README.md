@@ -25,13 +25,43 @@ Stay confident, stay stealthy. 🧘‍♂️✨
 ---
 
 ## 🏗 Project Structure
-
-(See above)
-
+```angular2html
+SilentSageAI/
+├── README.md
+├── .env.example
+├── pom.xml
+├── src/
+│   └── main/
+│       ├── java/
+│       │   └── com/
+│       │       └── silentsageai/
+│       │           └── stealth/
+│       │               ├── StealthAppLauncher.java
+│       │               ├── StealthChatWindow.java
+│       │               ├── TranscriptListener.java
+│       │               └── GPTService.java
+│       └── resources/
+```
 ---
 
 ## 🔧 Setup Instructions
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/SilentSageAI.git
+   https://github.com/Mukul-Howale/silent-sage-ai
+2. Open in your IDE
+3. Set your environment variables (create a root file .env)
+   ```env
+   OPENAI_API_KEY=your_openai_key_here
+   DEEPGRAM_API_KEY=your_deepgram_key_here
+4. Build:
+   ```bash
+   mvn clean install
+5. Run:
+   ```bash
+   java -jar target/silentsageai-1.0.jar
+
+## 🤖 Future Upgrades
+- Auto-copy answers to clipboard 📋
+- GPT mode switch ⚡🐢
+- Profile Modes 🔥
