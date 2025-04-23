@@ -41,7 +41,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.silentsageai.stealth.StealthAppLauncher</mainClass>
+                            <mainClass>org.example.StealthAppLauncher</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
