@@ -66,6 +66,10 @@ public class StealthChatWindow {
 
         // Optional: adjust opacity (0-255)
         User32.INSTANCE.SetLayeredWindowAttributes(hwnd, 0, (byte) 255, WinUser.LWA_ALPHA);
+
+        // ❗ Hide from full-screen screen sharing
+        boolean result = ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(hwnd, ExtendedUser32.WDA_EXCLUDEFROMCAPTURE);
+        System.out.println("SetWindowDisplayAffinity success? " + result);
     }
 
     private WinDef.HWND getHWnd(JFrame frame) {
