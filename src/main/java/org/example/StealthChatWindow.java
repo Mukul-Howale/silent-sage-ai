@@ -7,42 +7,71 @@ import com.sun.jna.platform.win32.WinUser;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
 
 public class StealthChatWindow {
     private TranscriptListener transcriptListener = null;
     private GPTService gptService = null;
     private final JTextArea chatArea;
+    private final JFrame frame;
+
+    private final String openaiApiKey;
+    private final String deepgramApiKey;
 
     public StealthChatWindow(String openaiApiKey, String deepgramApiKey) {
-        JFrame frame = new JFrame();
+        this.openaiApiKey = openaiApiKey;
+        this.deepgramApiKey = deepgramApiKey;
+        chatArea = new JTextArea();
+        frame = new JFrame();
+    }
+
+    public void startChatWindow() {
         frame.setUndecorated(true);
         frame.setAlwaysOnTop(true);
-        frame.setSize(300, 200);
-        frame.setLocationRelativeTo(null);
+        frame.setSize(300, 160); // Smaller size for stealth
         frame.setLocation(100, 100);
-        frame.setBackground(new Color(0, 0, 0, 0));
-        frame.setLayout(new FlowLayout());
-        frame.setVisible(true);
+        frame.setBackground(new Color(0, 0, 0, 0)); // Transparent window
 
-        chatArea = new JTextArea();
+        // Use JPanel as main content with custom background
+        JPanel panel = new JPanel();
+        panel.setBackground(new Color(0, 0, 0, 200)); // Increased opacity for better visibility
+        panel.setLayout(new BorderLayout(5, 5));
+        frame.setContentPane(panel);
+
+        // Listening label
+        JLabel statusLabel = new JLabel("Listening 🔴");
+        statusLabel.setForeground(Color.WHITE);
+        statusLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        statusLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        panel.add(statusLabel, BorderLayout.NORTH);
+
+        // Chat area
         chatArea.setEditable(false);
-        chatArea.setBackground(Color.BLACK);
+        chatArea.setBackground(new Color(0, 0, 0, 200)); // Match panel background
         chatArea.setForeground(Color.GREEN);
-        frame.add(new JScrollPane(chatArea), BorderLayout.CENTER);
+        chatArea.setLineWrap(true);
+        chatArea.setWrapStyleWord(true);
+        panel.add(new JScrollPane(chatArea), BorderLayout.CENTER);
 
-        JLabel listeningIndicator = new JLabel("Listening 🔴", SwingConstants.CENTER);
-        listeningIndicator.setForeground(Color.RED);
-        frame.add(listeningIndicator, BorderLayout.NORTH);
-
+        // Refresh button
         JButton refreshButton = new JButton("🔄 Refresh");
         refreshButton.addActionListener(e -> gptService.requestAnswer(transcriptListener.getMergedTranscript(), this::updateChatArea));
-        frame.add(refreshButton, BorderLayout.SOUTH);
+        panel.add(refreshButton, BorderLayout.SOUTH);
 
-        // ⚠️ Delay stealthing to make sure native peer is created
+        // Add draggable behavior to the entire panel
+        makeDraggable(frame, panel);
+
+        // Show the window
+        frame.setVisible(true);
+
+        // Stealth mode (slight delay)
         Timer timer = new Timer(300, e -> makeWindowStealthy(frame));
         timer.setRepeats(false);
         timer.start();
 
+        // Start services
         transcriptListener = new TranscriptListener(deepgramApiKey);
         gptService = new GPTService(openaiApiKey);
 
@@ -53,6 +82,28 @@ public class StealthChatWindow {
         transcriptListener.startListening();
     }
 
+    private void makeDraggable(JFrame frame, Component dragComponent) {
+        final Point[] initialClick = {null};
+
+        dragComponent.addMouseListener(new MouseAdapter() {
+            public void mousePressed(MouseEvent e) {
+                initialClick[0] = e.getPoint();
+            }
+        });
+
+        dragComponent.addMouseMotionListener(new MouseMotionAdapter() {
+            public void mouseDragged(MouseEvent e) {
+                if (initialClick[0] != null) {
+                    int xMoved = e.getX() - initialClick[0].x;
+                    int yMoved = e.getY() - initialClick[0].y;
+
+                    Point frameLocation = frame.getLocation();
+                    frame.setLocation(frameLocation.x + xMoved, frameLocation.y + yMoved);
+                }
+            }
+        });
+    }
+
     private void updateChatArea(String answer) {
         chatArea.append("\n\nAssistant: " + answer);
     }
@@ -61,13 +112,13 @@ public class StealthChatWindow {
         WinDef.HWND hwnd = getHWnd(frame);
 
         int exStyle = User32.INSTANCE.GetWindowLong(hwnd, WinUser.GWL_EXSTYLE);
-        exStyle |= WinUser.WS_EX_LAYERED | WinUser.WS_EX_TRANSPARENT;
+        exStyle |= WinUser.WS_EX_LAYERED;
         User32.INSTANCE.SetWindowLong(hwnd, WinUser.GWL_EXSTYLE, exStyle);
 
-        // Optional: adjust opacity (0-255)
-        User32.INSTANCE.SetLayeredWindowAttributes(hwnd, 0, (byte) 255, WinUser.LWA_ALPHA);
+        // Set opacity to 90% for better visibility while maintaining stealth
+        User32.INSTANCE.SetLayeredWindowAttributes(hwnd, 0, (byte) 230, WinUser.LWA_ALPHA);
 
-        // ❗ Hide from full-screen screen sharing
+        // Hide from full-screen screen sharing
         boolean result = ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(hwnd, ExtendedUser32.WDA_EXCLUDEFROMCAPTURE);
         System.out.println("SetWindowDisplayAffinity success? " + result);
     }

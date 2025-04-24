@@ -8,6 +8,7 @@ public class StealthAppLauncher {
         String openaiApiKey = dotenv.get("OPENAI_API_KEY");
         String deepgramApiKey = dotenv.get("DEEPGRAM_API_KEY");
 
-        new StealthChatWindow(openaiApiKey, deepgramApiKey);
+        StealthChatWindow chatWindow = new StealthChatWindow(openaiApiKey, deepgramApiKey);
+        chatWindow.startChatWindow();
     }
 }
