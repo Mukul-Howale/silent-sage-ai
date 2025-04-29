@@ -16,6 +16,8 @@ public class StealthChatWindow {
     private GPTService gptService = null;
     private final JTextArea chatArea;
     private final JFrame frame;
+    private JButton toggleButton;
+    private JLabel statusLabel;
 
     private final String openaiApiKey;
     private final String deepgramApiKey;
@@ -30,18 +32,17 @@ public class StealthChatWindow {
     public void startChatWindow() {
         frame.setUndecorated(true);
         frame.setAlwaysOnTop(true);
-        frame.setSize(500, 500); // Smaller size for stealth
+        frame.setSize(500, 500);
         frame.setLocation(100, 100);
-        frame.setBackground(new Color(0, 0, 0, 0)); // Transparent window
+        frame.setBackground(new Color(0, 0, 0, 0));
 
-        // Use JPanel as main content with custom background
         JPanel panel = new JPanel();
-        panel.setBackground(new Color(0, 0, 0, 200)); // Increased opacity for better visibility
+        panel.setBackground(new Color(0, 0, 0, 200));
         panel.setLayout(new BorderLayout(5, 5));
         frame.setContentPane(panel);
 
-        // Listening label
-        JLabel statusLabel = new JLabel("Listening 🔴");
+        // Status label
+        statusLabel = new JLabel("Not Listening ⚪");
         statusLabel.setForeground(Color.WHITE);
         statusLabel.setFont(new Font("Arial", Font.BOLD, 14));
         statusLabel.setHorizontalAlignment(SwingConstants.CENTER);
@@ -49,37 +50,55 @@ public class StealthChatWindow {
 
         // Chat area
         chatArea.setEditable(false);
-        chatArea.setBackground(new Color(0, 0, 0, 200)); // Match panel background
+        chatArea.setBackground(new Color(0, 0, 0, 200));
         chatArea.setForeground(Color.GREEN);
         chatArea.setLineWrap(true);
         chatArea.setWrapStyleWord(true);
         panel.add(new JScrollPane(chatArea), BorderLayout.CENTER);
 
+        // Button panel
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
+        buttonPanel.setBackground(new Color(0, 0, 0, 200));
+
+        // Toggle button
+        toggleButton = new JButton("🎤 Start Listening");
+        toggleButton.addActionListener(e -> toggleListening());
+        buttonPanel.add(toggleButton);
+
         // Refresh button
         JButton refreshButton = new JButton("🔄 Refresh");
         refreshButton.addActionListener(e -> gptService.requestAnswer(transcriptListener.getMergedTranscript(), this::updateChatArea));
-        panel.add(refreshButton, BorderLayout.SOUTH);
+        buttonPanel.add(refreshButton);
 
-        // Add draggable behavior to the entire panel
+        panel.add(buttonPanel, BorderLayout.SOUTH);
+
         makeDraggable(frame, panel);
-
-        // Show the window
         frame.setVisible(true);
 
-        // Stealth mode (slight delay)
         Timer timer = new Timer(300, e -> makeWindowStealthy(frame));
         timer.setRepeats(false);
         timer.start();
 
-        // Start services
         transcriptListener = new TranscriptListener(deepgramApiKey);
         gptService = new GPTService(openaiApiKey);
 
         transcriptListener.setTranscriptCallback(transcript -> {
             gptService.requestAnswer(transcript, this::updateChatArea);
         });
+    }
 
-        transcriptListener.startListening();
+    private void toggleListening() {
+        if (transcriptListener.isListening()) {
+            transcriptListener.stopListening();
+            toggleButton.setText("🎤 Start Listening");
+            statusLabel.setText("Not Listening ⚪");
+            statusLabel.setForeground(Color.WHITE);
+        } else {
+            transcriptListener.startListening();
+            toggleButton.setText("⏹ Stop Listening");
+            statusLabel.setText("Listening 🔴");
+            statusLabel.setForeground(Color.RED);
+        }
     }
 
     private void makeDraggable(JFrame frame, Component dragComponent) {
@@ -115,10 +134,8 @@ public class StealthChatWindow {
         exStyle |= WinUser.WS_EX_LAYERED;
         User32.INSTANCE.SetWindowLong(hwnd, WinUser.GWL_EXSTYLE, exStyle);
 
-        // Set opacity to 90% for better visibility while maintaining stealth
         User32.INSTANCE.SetLayeredWindowAttributes(hwnd, 0, (byte) 230, WinUser.LWA_ALPHA);
 
-        // Hide from full-screen screen sharing
         boolean result = ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(hwnd, ExtendedUser32.WDA_EXCLUDEFROMCAPTURE);
         System.out.println("SetWindowDisplayAffinity success? " + result);
     }

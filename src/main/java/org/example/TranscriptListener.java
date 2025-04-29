@@ -21,6 +21,8 @@ public class TranscriptListener {
     private Consumer<String> transcriptCallback;
     private WebSocketClient webSocketClient;
     private TargetDataLine audioLine;
+    private boolean isListening = false;
+    private Thread audioThread;
 
     public TranscriptListener(String deepgramApiKey) {
         this.deepgramApiKey = deepgramApiKey;
@@ -31,12 +33,35 @@ public class TranscriptListener {
     }
 
     public void startListening() {
+        if (isListening) return;
+        
         setupWebSocket();
         setupAudioCapture();
+        isListening = true;
+    }
+
+    public void stopListening() {
+        if (!isListening) return;
+        
+        if (webSocketClient != null) {
+            webSocketClient.close();
+        }
+        if (audioLine != null) {
+            audioLine.stop();
+            audioLine.close();
+        }
+        if (audioThread != null) {
+            audioThread.interrupt();
+        }
+        isListening = false;
+    }
+
+    public boolean isListening() {
+        return isListening;
     }
 
     private void setupWebSocket() {
-        webSocketClient = new WebSocketClient(URI.create(DEEPGRAM_WS_URL + "?encoding=linear16&sample_rate=" + SAMPLE_RATE)) {
+        webSocketClient = new WebSocketClient(URI.create(DEEPGRAM_WS_URL + "?encoding=linear16&sample_rate=" + SAMPLE_RATE + "&diarize=true")) {
             @Override
             public void onOpen(ServerHandshake handshakedata) {
                 System.out.println("🎙 Connected to Deepgram");
@@ -46,13 +71,20 @@ public class TranscriptListener {
             public void onMessage(String message) {
                 JSONObject response = new JSONObject(message);
                 if (response.has("channel") && response.getJSONObject("channel").has("alternatives")) {
-                    String transcript = response.getJSONObject("channel")
-                            .getJSONArray("alternatives")
-                            .getJSONObject(0)
-                            .getString("transcript");
+                    JSONObject channel = response.getJSONObject("channel");
+                    JSONObject alternative = channel.getJSONArray("alternatives").getJSONObject(0);
                     
-                    if (!transcript.isEmpty() && transcriptCallback != null) {
-                        transcriptCallback.accept(transcript);
+                    if (alternative.has("transcript") && !alternative.getString("transcript").isEmpty()) {
+                        // Check if the speaker is the interviewer (speaker 0)
+                        if (alternative.has("words")) {
+                            JSONObject firstWord = alternative.getJSONArray("words").getJSONObject(0);
+                            if (firstWord.has("speaker") && firstWord.getInt("speaker") == 0) {
+                                String transcript = alternative.getString("transcript");
+                                if (transcriptCallback != null) {
+                                    transcriptCallback.accept(transcript);
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -85,33 +117,23 @@ public class TranscriptListener {
             audioLine.open(format);
             audioLine.start();
 
-            byte[] buffer = new byte[4096];
-            new Thread(() -> {
-                while (webSocketClient.isOpen()) {
+            audioThread = new Thread(() -> {
+                byte[] buffer = new byte[4096];
+                while (!Thread.currentThread().isInterrupted() && webSocketClient.isOpen()) {
                     int count = audioLine.read(buffer, 0, buffer.length);
                     if (count > 0) {
                         webSocketClient.send(ByteBuffer.wrap(buffer, 0, count));
                     }
                 }
-            }).start();
+            });
+            audioThread.start();
         } catch (Exception e) {
             System.err.println("Error setting up audio capture: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
-    public void stopListening() {
-        if (webSocketClient != null) {
-            webSocketClient.close();
-        }
-        if (audioLine != null) {
-            audioLine.stop();
-            audioLine.close();
-        }
-    }
-
     public String getMergedTranscript() {
-        // In real implementation, this would merge partial transcriptions
         return "";
     }
 }
