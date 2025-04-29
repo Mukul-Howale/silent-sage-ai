@@ -5,7 +5,6 @@ import org.java_websocket.handshake.ServerHandshake;
 import org.json.JSONObject;
 
 import javax.sound.sampled.*;
-import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.function.Consumer;
