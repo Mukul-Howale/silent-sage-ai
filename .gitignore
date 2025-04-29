@@ -37,3 +37,4 @@ build/
 ### Mac OS ###
 .DS_Store
 .env
+logs/silent-sage.log

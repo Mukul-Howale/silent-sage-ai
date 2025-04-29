@@ -13,10 +13,12 @@ public class GPTService {
 
     public GPTService(String openaiApiKey) {
         this.openaiApiKey = openaiApiKey;
+        Logger.info("GPTService initialized");
     }
 
     public void requestAnswer(String prompt, Consumer<String> callback) {
         try {
+            Logger.debug("Processing GPT request for prompt: {}", prompt);
             String finalPrompt = "You are in a job interview. Respond appropriately to the following:\n" + prompt;
 
             RequestBody body = RequestBody.create(
@@ -33,12 +35,14 @@ public class GPTService {
             client.newCall(request).enqueue(new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
+                    Logger.error("GPT API request failed", e);
                     callback.accept("Failed to get response.");
                 }
 
                 @Override
                 public void onResponse(Call call, Response response) throws IOException {
                     if (!response.isSuccessful()) {
+                        Logger.warn("GPT API returned error response: {}", response.code());
                         callback.accept("Error: " + response.code());
                         return;
                     }
@@ -48,10 +52,12 @@ public class GPTService {
                             .path("message")
                             .path("content")
                             .asText();
+                    Logger.debug("Received GPT response successfully");
                     callback.accept(answer.trim());
                 }
             });
         } catch (Exception e) {
+            Logger.error("Exception occurred while processing GPT request", e);
             callback.accept("Exception occurred.");
         }
     }

@@ -27,9 +27,11 @@ public class StealthChatWindow {
         this.deepgramApiKey = deepgramApiKey;
         chatArea = new JTextArea();
         frame = new JFrame();
+        Logger.info("StealthChatWindow initialized");
     }
 
     public void startChatWindow() {
+        Logger.info("Starting chat window");
         frame.setUndecorated(true);
         frame.setAlwaysOnTop(true);
         frame.setSize(500, 500);
@@ -67,7 +69,10 @@ public class StealthChatWindow {
 
         // Refresh button
         JButton refreshButton = new JButton("🔄 Refresh");
-        refreshButton.addActionListener(e -> gptService.requestAnswer(transcriptListener.getMergedTranscript(), this::updateChatArea));
+        refreshButton.addActionListener(e -> {
+            Logger.debug("Refresh button clicked");
+            gptService.requestAnswer(transcriptListener.getMergedTranscript(), this::updateChatArea);
+        });
         buttonPanel.add(refreshButton);
 
         panel.add(buttonPanel, BorderLayout.SOUTH);
@@ -83,17 +88,20 @@ public class StealthChatWindow {
         gptService = new GPTService(openaiApiKey);
 
         transcriptListener.setTranscriptCallback(transcript -> {
+            Logger.debug("Received transcript callback: {}", transcript);
             gptService.requestAnswer(transcript, this::updateChatArea);
         });
     }
 
     private void toggleListening() {
         if (transcriptListener.isListening()) {
+            Logger.info("Stopping transcript listener : {StealthChatWindow}");
             transcriptListener.stopListening();
             toggleButton.setText("🎤 Start Listening");
             statusLabel.setText("Not Listening ⚪");
             statusLabel.setForeground(Color.WHITE);
         } else {
+            Logger.info("Starting transcript listener : {StealthChatWindow}");
             transcriptListener.startListening();
             toggleButton.setText("⏹ Stop Listening");
             statusLabel.setText("Listening 🔴");
@@ -109,7 +117,6 @@ public class StealthChatWindow {
                 initialClick[0] = e.getPoint();
             }
         });
-
         dragComponent.addMouseMotionListener(new MouseMotionAdapter() {
             public void mouseDragged(MouseEvent e) {
                 if (initialClick[0] != null) {
@@ -124,10 +131,12 @@ public class StealthChatWindow {
     }
 
     private void updateChatArea(String answer) {
+        Logger.debug("Updating chat area with answer: {}", answer);
         chatArea.append("\n\nAssistant: " + answer);
     }
 
     private void makeWindowStealthy(JFrame frame) {
+        Logger.debug("Making window stealthy");
         WinDef.HWND hwnd = getHWnd(frame);
 
         int exStyle = User32.INSTANCE.GetWindowLong(hwnd, WinUser.GWL_EXSTYLE);
@@ -137,12 +146,12 @@ public class StealthChatWindow {
         User32.INSTANCE.SetLayeredWindowAttributes(hwnd, 0, (byte) 230, WinUser.LWA_ALPHA);
 
         boolean result = ExtendedUser32.INSTANCE.SetWindowDisplayAffinity(hwnd, ExtendedUser32.WDA_EXCLUDEFROMCAPTURE);
-        System.out.println("SetWindowDisplayAffinity success? " + result);
+        Logger.debug("SetWindowDisplayAffinity result: {}", result);
     }
 
     private WinDef.HWND getHWnd(JFrame frame) {
         if (!frame.isDisplayable()) {
-            System.err.println("Frame not displayable yet.");
+            Logger.error("Frame not displayable yet");
             return null;
         }
         WinDef.HWND hwnd = new WinDef.HWND();

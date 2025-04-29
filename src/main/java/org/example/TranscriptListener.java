@@ -26,23 +26,33 @@ public class TranscriptListener {
 
     public TranscriptListener(String deepgramApiKey) {
         this.deepgramApiKey = deepgramApiKey;
+        Logger.info("TranscriptListener initialized");
     }
 
     public void setTranscriptCallback(Consumer<String> callback) {
         this.transcriptCallback = callback;
+        Logger.debug("Transcript callback set");
     }
 
     public void startListening() {
-        if (isListening) return;
+        if (isListening) {
+            Logger.warn("Attempted to start listening while already listening");
+            return;
+        }
         
+        Logger.info("Starting transcript listener : {TranscriptListener}");
         setupWebSocket();
         setupAudioCapture();
         isListening = true;
     }
 
     public void stopListening() {
-        if (!isListening) return;
+        if (!isListening) {
+            Logger.warn("Attempted to stop listening while not listening");
+            return;
+        }
         
+        Logger.info("Stopping transcript listener : {TranscriptListener}");
         if (webSocketClient != null) {
             webSocketClient.close();
         }
@@ -64,39 +74,43 @@ public class TranscriptListener {
         webSocketClient = new WebSocketClient(URI.create(DEEPGRAM_WS_URL + "?encoding=linear16&sample_rate=" + SAMPLE_RATE + "&diarize=true")) {
             @Override
             public void onOpen(ServerHandshake handshakedata) {
-                System.out.println("🎙 Connected to Deepgram");
+                Logger.info("Connected to Deepgram WebSocket");
             }
 
             @Override
             public void onMessage(String message) {
-                JSONObject response = new JSONObject(message);
-                if (response.has("channel") && response.getJSONObject("channel").has("alternatives")) {
-                    JSONObject channel = response.getJSONObject("channel");
-                    JSONObject alternative = channel.getJSONArray("alternatives").getJSONObject(0);
-                    
-                    if (alternative.has("transcript") && !alternative.getString("transcript").isEmpty()) {
-                        // Check if the speaker is the interviewer (speaker 0)
-                        if (alternative.has("words")) {
-                            JSONObject firstWord = alternative.getJSONArray("words").getJSONObject(0);
-                            if (firstWord.has("speaker") && firstWord.getInt("speaker") == 0) {
-                                String transcript = alternative.getString("transcript");
-                                if (transcriptCallback != null) {
-                                    transcriptCallback.accept(transcript);
+                try {
+                    JSONObject response = new JSONObject(message);
+                    if (response.has("channel") && response.getJSONObject("channel").has("alternatives")) {
+                        JSONObject channel = response.getJSONObject("channel");
+                        JSONObject alternative = channel.getJSONArray("alternatives").getJSONObject(0);
+                        
+                        if (alternative.has("transcript") && !alternative.getString("transcript").isEmpty()) {
+                            if (alternative.has("words")) {
+                                JSONObject firstWord = alternative.getJSONArray("words").getJSONObject(0);
+                                if (firstWord.has("speaker") && firstWord.getInt("speaker") == 0) {
+                                    String transcript = alternative.getString("transcript");
+                                    Logger.debug("Received transcript: {}", transcript);
+                                    if (transcriptCallback != null) {
+                                        transcriptCallback.accept(transcript);
+                                    }
                                 }
                             }
                         }
                     }
+                } catch (Exception e) {
+                    Logger.error("Error processing WebSocket message", e);
                 }
             }
 
             @Override
             public void onClose(int code, String reason, boolean remote) {
-                System.out.println("Connection closed: " + reason);
+                Logger.info("WebSocket connection closed: {} (code: {})", reason, code);
             }
 
             @Override
             public void onError(Exception ex) {
-                System.err.println("WebSocket error: " + ex.getMessage());
+                Logger.error("WebSocket error occurred", ex);
             }
         };
 
@@ -106,6 +120,7 @@ public class TranscriptListener {
 
     private void setupAudioCapture() {
         try {
+            Logger.debug("Setting up audio capture");
             AudioFormat format = new AudioFormat(SAMPLE_RATE, SAMPLE_SIZE_IN_BITS, CHANNELS, SIGNED, BIG_ENDIAN);
             DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
 
@@ -127,9 +142,9 @@ public class TranscriptListener {
                 }
             });
             audioThread.start();
+            Logger.info("Audio capture setup completed successfully");
         } catch (Exception e) {
-            System.err.println("Error setting up audio capture: " + e.getMessage());
-            e.printStackTrace();
+            Logger.error("Error setting up audio capture", e);
         }
     }
 
