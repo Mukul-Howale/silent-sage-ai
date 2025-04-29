@@ -30,7 +30,7 @@ public class StealthChatWindow {
     public void startChatWindow() {
         frame.setUndecorated(true);
         frame.setAlwaysOnTop(true);
-        frame.setSize(300, 160); // Smaller size for stealth
+        frame.setSize(500, 500); // Smaller size for stealth
         frame.setLocation(100, 100);
         frame.setBackground(new Color(0, 0, 0, 0)); // Transparent window
 
