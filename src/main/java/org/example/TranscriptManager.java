@@ -9,7 +9,7 @@ import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.function.Consumer;
 
-public class TranscriptListener {
+public class TranscriptManager {
     private static final String DEEPGRAM_WS_URL = "wss://api.deepgram.com/v1/listen";
     private static final int SAMPLE_RATE = 16000;
     private static final int SAMPLE_SIZE_IN_BITS = 16;
@@ -18,15 +18,17 @@ public class TranscriptListener {
     private static final boolean BIG_ENDIAN = false;
 
     private final String deepgramApiKey;
+    private final TranscriptStorage storage;
     private Consumer<String> transcriptCallback;
     private WebSocketClient webSocketClient;
     private TargetDataLine audioLine;
     private boolean isListening = false;
     private Thread audioThread;
 
-    public TranscriptListener(String deepgramApiKey) {
+    public TranscriptManager(String deepgramApiKey) {
         this.deepgramApiKey = deepgramApiKey;
-        Logger.info("TranscriptListener initialized");
+        this.storage = new TranscriptStorage();
+        Logger.info("TranscriptManager initialized");
     }
 
     public void setTranscriptCallback(Consumer<String> callback) {
@@ -40,7 +42,7 @@ public class TranscriptListener {
             return;
         }
         
-        Logger.info("Starting transcript listener : {TranscriptListener}");
+        Logger.info("Starting transcript manager");
         setupWebSocket();
         setupAudioCapture();
         isListening = true;
@@ -52,7 +54,7 @@ public class TranscriptListener {
             return;
         }
         
-        Logger.info("Stopping transcript listener : {TranscriptListener}");
+        Logger.info("Stopping transcript manager");
         if (webSocketClient != null) {
             webSocketClient.close();
         }
@@ -68,6 +70,10 @@ public class TranscriptListener {
 
     public boolean isListening() {
         return isListening;
+    }
+
+    public String getMergedTranscript() {
+        return storage.getMergedTranscript();
     }
 
     private void setupWebSocket() {
@@ -91,6 +97,7 @@ public class TranscriptListener {
                                 if (firstWord.has("speaker") && firstWord.getInt("speaker") == 0) {
                                     String transcript = alternative.getString("transcript");
                                     Logger.debug("Received transcript: {}", transcript);
+                                    storage.addTranscript(transcript);
                                     if (transcriptCallback != null) {
                                         transcriptCallback.accept(transcript);
                                     }
@@ -147,8 +154,4 @@ public class TranscriptListener {
             Logger.error("Error setting up audio capture", e);
         }
     }
-
-    public String getMergedTranscript() {
-        return "";
-    }
-}
+} 

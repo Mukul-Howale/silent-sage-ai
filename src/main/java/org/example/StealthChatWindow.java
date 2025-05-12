@@ -12,7 +12,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
 
 public class StealthChatWindow {
-    private TranscriptListener transcriptListener = null;
+    private TranscriptManager transcriptManager = null;
     private GPTService gptService = null;
     private final JTextArea chatArea;
     private final JFrame frame;
@@ -71,7 +71,7 @@ public class StealthChatWindow {
         JButton refreshButton = new JButton("🔄 Refresh");
         refreshButton.addActionListener(e -> {
             Logger.debug("Refresh button clicked");
-            gptService.requestAnswer(transcriptListener.getMergedTranscript(), this::updateChatArea);
+            gptService.requestAnswer(transcriptManager.getMergedTranscript(), this::updateChatArea);
         });
         buttonPanel.add(refreshButton);
 
@@ -84,25 +84,25 @@ public class StealthChatWindow {
         timer.setRepeats(false);
         timer.start();
 
-        transcriptListener = new TranscriptListener(deepgramApiKey);
+        transcriptManager = new TranscriptManager(deepgramApiKey);
         gptService = new GPTService(geminiApiKey);
 
-        transcriptListener.setTranscriptCallback(transcript -> {
+        transcriptManager.setTranscriptCallback(transcript -> {
             Logger.debug("Received transcript callback: {}", transcript);
             gptService.requestAnswer(transcript, this::updateChatArea);
         });
     }
 
     private void toggleListening() {
-        if (transcriptListener.isListening()) {
-            Logger.info("Stopping transcript listener : {StealthChatWindow}");
-            transcriptListener.stopListening();
+        if (transcriptManager.isListening()) {
+            Logger.info("Stopping transcript manager : {StealthChatWindow}");
+            transcriptManager.stopListening();
             toggleButton.setText("🎤 Start Listening");
             statusLabel.setText("Not Listening ⚪");
             statusLabel.setForeground(Color.WHITE);
         } else {
-            Logger.info("Starting transcript listener : {StealthChatWindow}");
-            transcriptListener.startListening();
+            Logger.info("Starting transcript manager : {StealthChatWindow}");
+            transcriptManager.startListening();
             toggleButton.setText("⏹ Stop Listening");
             statusLabel.setText("Listening 🔴");
             statusLabel.setForeground(Color.RED);
