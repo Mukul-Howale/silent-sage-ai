@@ -40,13 +40,6 @@
             <artifactId>jna-platform</artifactId>
             <version>5.13.0</version>
         </dependency>
-        <!-- Google AI Java Client -->
-        <dependency>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-ai-generativelanguage</artifactId>
-            <version>0.1.0</version>
-        </dependency>
-        
         <!-- WebSocket Client -->
         <dependency>
             <groupId>org.java-websocket</groupId>

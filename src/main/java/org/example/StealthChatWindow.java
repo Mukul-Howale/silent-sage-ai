@@ -19,11 +19,11 @@ public class StealthChatWindow {
     private JButton toggleButton;
     private JLabel statusLabel;
 
-    private final String openaiApiKey;
+    private final String geminiApiKey;
     private final String deepgramApiKey;
 
-    public StealthChatWindow(String openaiApiKey, String deepgramApiKey) {
-        this.openaiApiKey = openaiApiKey;
+    public StealthChatWindow(String geminiApiKey, String deepgramApiKey) {
+        this.geminiApiKey = geminiApiKey;
         this.deepgramApiKey = deepgramApiKey;
         chatArea = new JTextArea();
         frame = new JFrame();
@@ -85,7 +85,7 @@ public class StealthChatWindow {
         timer.start();
 
         transcriptListener = new TranscriptListener(deepgramApiKey);
-        gptService = new GPTService(openaiApiKey);
+        gptService = new GPTService(geminiApiKey);
 
         transcriptListener.setTranscriptCallback(transcript -> {
             Logger.debug("Received transcript callback: {}", transcript);

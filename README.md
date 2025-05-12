@@ -7,9 +7,9 @@ Stay confident, stay stealthy. 🧘‍♂️✨
 ## 🚀 Features
 
 - 🎤 Real-time voice transcription (only interviewer audio)
-- 🧠 GPT-powered automatic answer suggestions
+- 🧠 Gemini AI-powered automatic answer suggestions
 - 🕵️‍♂️ Stealth floating window with Listening indicator 🔴
-- 🔄 Manual "Refresh" mini-button to request new GPT response
+- 🔄 Manual "Refresh" mini-button to request new Gemini response
 - 🎯 Smartly handles coding questions vs chit-chat
 
 ---
@@ -52,7 +52,7 @@ SilentSageAI/
 2. Open in your IDE
 3. Set your environment variables (create a root file .env)
    ```env
-   OPENAI_API_KEY=your_openai_key_here
+   GEMINI_API_KEY=your_gemini_key_here
    DEEPGRAM_API_KEY=your_deepgram_key_here
 4. Build:
    ```bash
