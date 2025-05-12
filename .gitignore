@@ -38,3 +38,4 @@ build/
 .DS_Store
 .env
 logs/silent-sage.log
+/.cursor/rules

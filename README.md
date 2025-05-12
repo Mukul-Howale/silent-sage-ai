@@ -18,7 +18,7 @@ Stay confident, stay stealthy. 🧘‍♂️✨
 
 - Java 21
 - Deepgram API (Speech-to-Text)
-- OpenAI API (Answer generation)
+- Google Gemini AI (Answer generation)
 - Java Swing (Minimal stealthy UI)
 - Maven for build automation
 

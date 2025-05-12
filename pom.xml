@@ -40,11 +40,11 @@
             <artifactId>jna-platform</artifactId>
             <version>5.13.0</version>
         </dependency>
-        <!-- OpenAI SDK -->
+        <!-- Google AI Java Client -->
         <dependency>
-            <groupId>com.theokanning.openai-gpt3-java</groupId>
-            <artifactId>service</artifactId>
-            <version>0.18.2</version>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-ai-generativelanguage</artifactId>
+            <version>0.1.0</version>
         </dependency>
         
         <!-- WebSocket Client -->

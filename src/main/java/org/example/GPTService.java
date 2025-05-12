@@ -1,83 +1,52 @@
 package org.example;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.*;
+import com.google.cloud.ai.generativelanguage.v1beta.GenerativeServiceClient;
+import com.google.cloud.ai.generativelanguage.v1beta.GenerateContentRequest;
+import com.google.cloud.ai.generativelanguage.v1beta.GenerateContentResponse;
+import com.google.cloud.ai.generativelanguage.v1beta.Content;
+import com.google.cloud.ai.generativelanguage.v1beta.Part;
+import com.google.cloud.ai.generativelanguage.v1beta.ModelName;
 
 import java.io.IOException;
 import java.util.function.Consumer;
 
 public class GPTService {
-    private final String openaiApiKey;
-    private final OkHttpClient client = new OkHttpClient();
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final String geminiApiKey;
+    private final GenerativeServiceClient client;
 
-    public GPTService(String openaiApiKey) {
-        this.openaiApiKey = openaiApiKey;
-        Logger.info("GPTService initialized");
+    public GPTService(String geminiApiKey) {
+        this.geminiApiKey = geminiApiKey;
+        try {
+            this.client = GenerativeServiceClient.create();
+            Logger.info("GPTService initialized with Gemini AI");
+        } catch (IOException e) {
+            Logger.error("Failed to initialize Gemini AI client", e);
+            throw new RuntimeException("Failed to initialize Gemini AI client", e);
+        }
     }
 
     public void requestAnswer(String prompt, Consumer<String> callback) {
         try {
-            Logger.debug("Processing GPT request for prompt: {}", prompt);
+            Logger.debug("Processing Gemini request for prompt: {}", prompt);
             String finalPrompt = "You are in a job interview. Respond appropriately to the following:\n" + prompt;
 
-            RequestBody body = RequestBody.create(
-                    objectMapper.writeValueAsString(new ChatRequest(finalPrompt)),
-                    MediaType.get("application/json")
-            );
+            Content content = Content.newBuilder()
+                .addParts(Part.newBuilder().setText(finalPrompt).build())
+                .build();
 
-            Request request = new Request.Builder()
-                    .url("https://api.openai.com/v1/chat/completions")
-                    .addHeader("Authorization", "Bearer " + openaiApiKey)
-                    .post(body)
-                    .build();
+            GenerateContentRequest request = GenerateContentRequest.newBuilder()
+                .setModel(ModelName.of("gemini-pro").toString())
+                .setContents(content)
+                .build();
 
-            client.newCall(request).enqueue(new Callback() {
-                @Override
-                public void onFailure(Call call, IOException e) {
-                    Logger.error("GPT API request failed", e);
-                    callback.accept("Failed to get response.");
-                }
-
-                @Override
-                public void onResponse(Call call, Response response) throws IOException {
-                    if (!response.isSuccessful()) {
-                        Logger.warn("GPT API returned error response: {}", response.code());
-                        callback.accept("Error: " + response.code());
-                        return;
-                    }
-                    String responseBody = response.body().string();
-                    String answer = objectMapper.readTree(responseBody)
-                            .path("choices").get(0)
-                            .path("message")
-                            .path("content")
-                            .asText();
-                    Logger.debug("Received GPT response successfully");
-                    callback.accept(answer.trim());
-                }
-            });
+            GenerateContentResponse response = client.generateContent(request);
+            String answer = response.getCandidates(0).getContent().getParts(0).getText();
+            
+            Logger.debug("Received Gemini response successfully");
+            callback.accept(answer.trim());
         } catch (Exception e) {
-            Logger.error("Exception occurred while processing GPT request", e);
+            Logger.error("Exception occurred while processing Gemini request", e);
             callback.accept("Exception occurred.");
-        }
-    }
-
-    static class ChatRequest {
-        public String model = "gpt-3.5-turbo";
-        public Message[] messages;
-
-        public ChatRequest(String userPrompt) {
-            this.messages = new Message[]{new Message("user", userPrompt)};
-        }
-
-        static class Message {
-            public String role;
-            public String content;
-
-            public Message(String role, String content) {
-                this.role = role;
-                this.content = content;
-            }
         }
     }
 }
