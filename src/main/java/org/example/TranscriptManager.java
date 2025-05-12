@@ -76,6 +76,10 @@ public class TranscriptManager {
         return storage.getMergedTranscript();
     }
 
+    public TranscriptStorage getStorage() {
+        return storage;
+    }
+
     private void setupWebSocket() {
         webSocketClient = new WebSocketClient(URI.create(DEEPGRAM_WS_URL + "?encoding=linear16&sample_rate=" + SAMPLE_RATE + "&diarize=true")) {
             @Override
@@ -132,26 +136,40 @@ public class TranscriptManager {
             DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
 
             if (!AudioSystem.isLineSupported(info)) {
+                Logger.error("Audio line not supported for format: {}", format);
                 throw new LineUnavailableException("Line not supported");
             }
 
+            Logger.debug("Getting available audio lines");
+            Mixer.Info[] mixers = AudioSystem.getMixerInfo();
+            for (Mixer.Info mixerInfo : mixers) {
+                Logger.debug("Available mixer: {}", mixerInfo.getName());
+            }
+
             audioLine = (TargetDataLine) AudioSystem.getLine(info);
+            Logger.debug("Audio line obtained: {}", audioLine.getLineInfo());
             audioLine.open(format);
             audioLine.start();
+            Logger.debug("Audio line started with format: {}", audioLine.getFormat());
 
             audioThread = new Thread(() -> {
                 byte[] buffer = new byte[4096];
+                int totalBytesRead = 0;
                 while (!Thread.currentThread().isInterrupted() && webSocketClient.isOpen()) {
                     int count = audioLine.read(buffer, 0, buffer.length);
                     if (count > 0) {
+                        totalBytesRead += count;
+                        Logger.debug("Read {} bytes of audio data, total: {}", count, totalBytesRead);
                         webSocketClient.send(ByteBuffer.wrap(buffer, 0, count));
+                    } else {
+                        Logger.debug("No audio data read");
                     }
                 }
             });
             audioThread.start();
             Logger.info("Audio capture setup completed successfully");
         } catch (Exception e) {
-            Logger.error("Error setting up audio capture", e);
+            Logger.error("Error setting up audio capture: {}", e.getMessage(), e);
         }
     }
 } 

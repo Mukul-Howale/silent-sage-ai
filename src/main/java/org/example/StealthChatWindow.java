@@ -135,6 +135,26 @@ public class StealthChatWindow {
         chatArea.append("\n\nAssistant: " + answer);
     }
 
+    public void startTranscription() {
+        if (!transcriptManager.isListening()) {
+            toggleListening();
+        }
+    }
+
+    public void stopTranscription() {
+        if (transcriptManager.isListening()) {
+            toggleListening();
+        }
+    }
+
+    public TranscriptManager getTranscriptManager() {
+        return transcriptManager;
+    }
+
+    public String getLastResponse() {
+        return chatArea.getText();
+    }
+
     private void makeWindowStealthy(JFrame frame) {
         Logger.debug("Making window stealthy");
         WinDef.HWND hwnd = getHWnd(frame);

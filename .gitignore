@@ -39,3 +39,4 @@ build/
 .env
 logs/silent-sage.log
 /.cursor/rules
+/logs
