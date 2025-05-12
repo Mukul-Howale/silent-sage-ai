@@ -152,7 +152,16 @@ public class StealthChatWindow {
     }
 
     public String getLastResponse() {
-        return chatArea.getText();
+        String fullText = chatArea.getText();
+        String[] messages = fullText.split("\n\nAssistant: ");
+        if (messages.length > 1) {
+            return messages[messages.length - 1].trim();
+        }
+        return "";
+    }
+
+    public void setGptService(GPTService gptService) {
+        this.gptService = gptService;
     }
 
     private void makeWindowStealthy(JFrame frame) {
