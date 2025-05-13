@@ -147,37 +147,67 @@ public class TranscriptManager {
             
             Logger.debug("Getting available audio lines");
             Mixer.Info[] mixers = AudioSystem.getMixerInfo();
+            Logger.info("Found {} audio mixers", mixers.length);
+            
             Mixer selectedMixer = null;
             AudioFormat nativeFormat = null;
             
-            // Try to find a suitable mixer for audio capture
-            for (Mixer.Info mixerInfo : mixers) {
-                Logger.debug("Available mixer: {} - {}", mixerInfo.getName(), mixerInfo.getDescription());
-                if (mixerInfo.getName().contains("Stereo Mix") || 
-                    mixerInfo.getName().contains("What U Hear") ||
-                    mixerInfo.getName().contains("CABLE Output") ||
-                    mixerInfo.getName().contains("VB-Audio") ||
-                    mixerInfo.getName().contains("Loopback")) {
-                    selectedMixer = AudioSystem.getMixer(mixerInfo);
-                    Logger.debug("Selected mixer for audio capture: {}", mixerInfo.getName());
-                    
-                    // Get the native format
-                    nativeFormat = getAudioFormat(selectedMixer, nativeFormat);
+            // First try to find system audio capture devices
+            String[] systemAudioDevices = {"Stereo Mix", "What U Hear", "What You Hear", "Wave Out Mix", "Mixage stéréo"};
+            for (String deviceName : systemAudioDevices) {
+                for (Mixer.Info mixerInfo : mixers) {
+                    if (mixerInfo.getName().contains(deviceName)) {
+                        selectedMixer = AudioSystem.getMixer(mixerInfo);
+                        Logger.info("Selected system audio device: {}", mixerInfo.getName());
+                        nativeFormat = getAudioFormat(selectedMixer, nativeFormat);
+                        if (nativeFormat != null) {
+                            break;
+                        }
+                    }
+                }
+                if (selectedMixer != null && nativeFormat != null) {
+                    break;
                 }
             }
-
-            // If no virtual device found, try to use the default capture device
-            if (selectedMixer == null) {
-                Logger.debug("No virtual audio device found, trying default capture device");
+            
+            // If no system audio device found, try Camo microphone
+            if (selectedMixer == null || nativeFormat == null) {
                 for (Mixer.Info mixerInfo : mixers) {
-                    if (mixerInfo.getName().contains("Primary Sound Capture") || 
-                        mixerInfo.getName().contains("DirectSound Capture")) {
+                    if (mixerInfo.getName().contains("Camo")) {
                         selectedMixer = AudioSystem.getMixer(mixerInfo);
-                        Logger.debug("Selected default capture device: {}", mixerInfo.getName());
-                        
-                        // Get the native format
+                        Logger.info("Selected Camo microphone: {}", mixerInfo.getName());
                         nativeFormat = getAudioFormat(selectedMixer, nativeFormat);
-                        break;
+                        if (nativeFormat != null) {
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // If still no device found, try Realtek microphone
+            if (selectedMixer == null || nativeFormat == null) {
+                for (Mixer.Info mixerInfo : mixers) {
+                    if (mixerInfo.getName().contains("Realtek") && mixerInfo.getName().contains("Microphone")) {
+                        selectedMixer = AudioSystem.getMixer(mixerInfo);
+                        Logger.info("Selected Realtek microphone: {}", mixerInfo.getName());
+                        nativeFormat = getAudioFormat(selectedMixer, nativeFormat);
+                        if (nativeFormat != null) {
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // If still no device found, try any microphone
+            if (selectedMixer == null || nativeFormat == null) {
+                for (Mixer.Info mixerInfo : mixers) {
+                    if (mixerInfo.getName().contains("Microphone")) {
+                        selectedMixer = AudioSystem.getMixer(mixerInfo);
+                        Logger.info("Selected generic microphone: {}", mixerInfo.getName());
+                        nativeFormat = getAudioFormat(selectedMixer, nativeFormat);
+                        if (nativeFormat != null) {
+                            break;
+                        }
                     }
                 }
             }
@@ -190,18 +220,18 @@ public class TranscriptManager {
             // Create a line with the native format
             DataLine.Info info = new DataLine.Info(TargetDataLine.class, nativeFormat);
             audioLine = (TargetDataLine) selectedMixer.getLine(info);
-            Logger.debug("Audio line obtained: {} with format: {}", audioLine.getLineInfo(), audioLine.getFormat());
+            Logger.info("Audio line obtained: {} with format: {}", audioLine.getLineInfo(), audioLine.getFormat());
             
             // Set a larger buffer size
             int bufferSize = 16384;
             audioLine.open(nativeFormat, bufferSize);
             audioLine.start();
-            Logger.debug("Audio line started with format: {} and buffer size: {}", audioLine.getFormat(), bufferSize);
+            Logger.info("Audio line started with format: {} and buffer size: {}", audioLine.getFormat(), bufferSize);
 
             // Create an audio converter
             AudioInputStream audioInputStream = new AudioInputStream(audioLine);
             AudioInputStream convertedStream = AudioSystem.getAudioInputStream(targetFormat, audioInputStream);
-            Logger.debug("Audio conversion stream created from {} to {}", nativeFormat, targetFormat);
+            Logger.info("Audio conversion stream created from {} to {}", nativeFormat, targetFormat);
 
             audioThread = new Thread(() -> {
                 byte[] buffer = new byte[4096];

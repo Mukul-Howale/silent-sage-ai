@@ -1,0 +1,5 @@
+pyaudio==0.2.13
+sounddevice==0.4.6
+soundcard==0.4.2
+websockets==11.0.3
+numpy==1.24.3
