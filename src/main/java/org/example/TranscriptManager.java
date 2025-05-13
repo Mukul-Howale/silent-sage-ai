@@ -162,18 +162,7 @@ public class TranscriptManager {
                     Logger.debug("Selected mixer for audio capture: {}", mixerInfo.getName());
                     
                     // Get the native format
-                    Line.Info[] lineInfos = selectedMixer.getSourceLineInfo();
-                    for (Line.Info lineInfo : lineInfos) {
-                        if (lineInfo instanceof DataLine.Info) {
-                            AudioFormat[] formats = ((DataLine.Info) lineInfo).getFormats();
-                            if (formats.length > 0) {
-                                nativeFormat = formats[0];
-                                Logger.debug("Native format: {}", nativeFormat);
-                                break;
-                            }
-                        }
-                    }
-                    break;
+                    nativeFormat = getAudioFormat(selectedMixer, nativeFormat);
                 }
             }
 
@@ -187,17 +176,7 @@ public class TranscriptManager {
                         Logger.debug("Selected default capture device: {}", mixerInfo.getName());
                         
                         // Get the native format
-                        Line.Info[] lineInfos = selectedMixer.getSourceLineInfo();
-                        for (Line.Info lineInfo : lineInfos) {
-                            if (lineInfo instanceof DataLine.Info) {
-                                AudioFormat[] formats = ((DataLine.Info) lineInfo).getFormats();
-                                if (formats.length > 0) {
-                                    nativeFormat = formats[0];
-                                    Logger.debug("Native format: {}", nativeFormat);
-                                    break;
-                                }
-                            }
-                        }
+                        nativeFormat = getAudioFormat(selectedMixer, nativeFormat);
                         break;
                     }
                 }
@@ -289,5 +268,20 @@ public class TranscriptManager {
             Logger.error("Error setting up audio capture: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to setup audio capture", e);
         }
+    }
+
+    private AudioFormat getAudioFormat(Mixer selectedMixer, AudioFormat nativeFormat) {
+        Line.Info[] lineInfos = selectedMixer.getSourceLineInfo();
+        for (Line.Info lineInfo : lineInfos) {
+            if (lineInfo instanceof DataLine.Info) {
+                AudioFormat[] formats = ((DataLine.Info) lineInfo).getFormats();
+                if (formats.length > 0) {
+                    nativeFormat = formats[0];
+                    Logger.debug("Native format: {}", nativeFormat);
+                    break;
+                }
+            }
+        }
+        return nativeFormat;
     }
 } 
